@@ -29,8 +29,22 @@ object Config {
 
     fun pretty(code: String): String = code.chunked(4).joinToString("-")
 
-    fun broker(c: Context): String =
-        prefs(c).getString("broker", DEFAULT_BROKER) ?: DEFAULT_BROKER
+    /** Пары: адрес для ТВ (ssl) и адрес для страницы пульта (wss). Сервер у пары один и тот же. */
+    val BROKERS: List<Pair<String, String>> = listOf(
+        Pair("ssl://broker.hivemq.com:8883", "wss://broker.hivemq.com:8884/mqtt"),
+        Pair("ssl://broker.emqx.io:8883", "wss://broker.emqx.io:8084/mqtt")
+    )
+
+    private fun brokerIndex(c: Context): Int =
+        prefs(c).getInt("broker_idx", 0).coerceIn(0, BROKERS.size - 1)
+
+    fun broker(c: Context): String = BROKERS[brokerIndex(c)].first
+
+    fun pageBroker(c: Context): String = BROKERS[brokerIndex(c)].second
+
+    fun nextBroker(c: Context) {
+        prefs(c).edit().putInt("broker_idx", (brokerIndex(c) + 1) % BROKERS.size).apply()
+    }
 }
 
 /** Общее состояние для экрана приложения. */

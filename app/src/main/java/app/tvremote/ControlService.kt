@@ -157,7 +157,8 @@ class ControlService : Service() {
                 }
 
                 override fun connectionLost(cause: Throwable?) {
-                    Status.mqtt = "связь потеряна, переподключаюсь…"
+                    Status.mqtt = "связь потеряна (" +
+                        (cause?.message ?: cause?.javaClass?.simpleName ?: "?") + "), переподключаюсь…"
                 }
 
                 override fun messageArrived(topic: String?, message: MqttMessage?) {

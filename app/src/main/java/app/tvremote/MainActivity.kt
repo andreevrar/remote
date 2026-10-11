@@ -48,6 +48,10 @@ class MainActivity : Activity() {
         root.addView(button("Включить спец. возможности через ADB") { enableAccessibility() })
         root.addView(button("Открыть настройки спец. возможностей") { openAccessibilitySettings() })
         root.addView(button("Сгенерировать новый код") { restartService(true) })
+        root.addView(button("Сменить брокер") {
+            Config.nextBroker(this)
+            restartService(false)
+        })
 
         val scroll = ScrollView(this)
         scroll.addView(root)
@@ -91,6 +95,7 @@ class MainActivity : Activity() {
         val adb = if (Status.adbOk) "подключено"
         else "нет (не обязательно: громкость и медиа работают без него)"
         infoView.text = "Брокер: " + Config.broker(this) + "\n" +
+            "Адрес брокера для страницы: " + Config.pageBroker(this) + "\n" +
             "Связь: " + Status.mqtt + "\n" +
             "ADB: " + adb + "\n" +
             "Спец. возможности: " + acc + "\n" +

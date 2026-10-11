@@ -323,7 +323,11 @@
       <span>MQTT-брокер (тот же сервер, что у ТВ; страница подключается по wss)</span>
       <input type="text" id="brokerInput" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
-    <button class="key primary" id="connectBtn">Подключиться</button>
+    <div class="row r2 stretch">
+      <button class="key" id="presetHive" type="button">HiveMQ</button>
+      <button class="key" id="presetEmqx" type="button">EMQX</button>
+    </div>
+      <button class="key primary" id="connectBtn">Подключиться</button>
     <p class="hint" id="detail"></p>
   </div>
   <p class="hint">Код хранится только в этом браузере. Кто знает код, тот может управлять ТВ, поэтому никому его не показывайте. Если в приложении создали новый код, введите его здесь заново. Страницу можно открыть сразу с кодом: <code>…/#abcd-efgh-ijkl</code>.</p>
@@ -526,6 +530,9 @@
   var codeInput = $('#codeInput'), brokerInput = $('#brokerInput');
   codeInput.value = prettyCode(state.code);
   brokerInput.value = state.broker;
+
+  $('#presetHive').addEventListener('click', function () { brokerInput.value = 'wss://broker.hivemq.com:8884/mqtt'; });
+  $('#presetEmqx').addEventListener('click', function () { brokerInput.value = 'wss://broker.emqx.io:8084/mqtt'; });
 
   $('#connectBtn').addEventListener('click', function () {
     var code = normCode(codeInput.value);
