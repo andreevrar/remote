@@ -320,7 +320,7 @@
       <input type="text" id="codeInput" placeholder="abcd-efgh-ijkl" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
     <div class="field">
-      <span>MQTT-брокер (такой же, как в приложении на ТВ)</span>
+      <span>MQTT-брокер (тот же сервер, что у ТВ; страница подключается по wss)</span>
       <input type="text" id="brokerInput" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
     <button class="key primary" id="connectBtn">Подключиться</button>
@@ -398,7 +398,7 @@
     parts.push('Спец. возможности: ' + (tv.acc ? 'да' : 'нет'));
     detail.textContent = 'Состояние ТВ — ' + parts.join(', ');
     if (tv.adb || tv.acc) setStatus('ok', 'ТВ на связи');
-    else setStatus('warn', 'ТВ на связи, но управление не разрешено (ADB / спец. возможности)');
+    else setStatus('warn', 'ТВ на связи: работают звук и медиа, для стрелок включите спец. возможности на ТВ');
   }
 
   function connect() {

@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import java.security.SecureRandom
 
 object Config {
-    const val DEFAULT_BROKER = "wss://broker.hivemq.com:8884/mqtt"
+    const val DEFAULT_BROKER = "ssl://broker.hivemq.com:8883"
     const val ACC_ID = "app.tvremote/app.tvremote.RemoteAccessibilityService"
 
     private fun prefs(c: Context): SharedPreferences =

@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -44,6 +45,17 @@ class RemoteAccessibilityService : AccessibilityService() {
     fun back(): Boolean = performGlobalAction(GLOBAL_ACTION_BACK)
 
     fun home(): Boolean = performGlobalAction(GLOBAL_ACTION_HOME)
+
+    fun powerDialog(): Boolean = performGlobalAction(GLOBAL_ACTION_POWER_DIALOG)
+
+    fun openSettings(): Boolean = try {
+        val i = Intent(Settings.ACTION_SETTINGS)
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(i)
+        true
+    } catch (_: Throwable) {
+        false
+    }
 
     // ---------- фокус и клик ----------
 

@@ -9,6 +9,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.media.AudioManager
+import android.view.KeyEvent
 import android.view.View
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -34,6 +36,8 @@ class ControlService : Service() {
 
     private val worker = Executors.newSingleThreadExecutor()
     private val sched = Executors.newSingleThreadScheduledExecutor()
+    // отдельный поток для MQTT: ожидание ADB-разрешения не должно блокировать переподключение
+    private val mqttSched = Executors.newSingleThreadScheduledExecutor()
     private val pending = AtomicInteger(0)
 
     private lateinit var adb: AdbClient
@@ -72,6 +76,7 @@ class ControlService : Service() {
         } catch (_: Throwable) {
         }
         sched.shutdownNow()
+        mqttSched.shutdownNow()
         worker.shutdownNow()
         try {
             wake?.release()
@@ -180,12 +185,28 @@ class ControlService : Service() {
                         c.close()
                     } catch (_: Throwable) {
                     }
-                    if (!stopped) sched.schedule({ connectMqtt() }, 10L, TimeUnit.SECONDS)
+                    if (!stopped) mqttSched.schedule({ connectMqtt() }, 10L, TimeUnit.SECONDS)
                 }
             })
+
+            // если за 25 секунд соединение не установилось (бывает, что оно просто зависает), пробуем заново
+            mqttSched.schedule({
+                if (!stopped && client === c && !c.isConnected) {
+                    Status.mqtt = "нет ответа от брокера, пробую снова…"
+                    try {
+                        c.disconnectForcibly(0, 0)
+                    } catch (_: Throwable) {
+                    }
+                    try {
+                        c.close()
+                    } catch (_: Throwable) {
+                    }
+                    connectMqtt()
+                }
+            }, 25L, TimeUnit.SECONDS)
         } catch (e: Throwable) {
             Status.mqtt = "ошибка: " + (e.message ?: e.javaClass.simpleName)
-            if (!stopped) sched.schedule({ connectMqtt() }, 10L, TimeUnit.SECONDS)
+            if (!stopped) mqttSched.schedule({ connectMqtt() }, 10L, TimeUnit.SECONDS)
         }
     }
 
@@ -248,9 +269,13 @@ class ControlService : Service() {
             Status.adbOk = false
             publishStatus()
         }
-        // запасной путь через службу специальных возможностей
+        // режим без ADB: громкость и медиа-кнопки обрабатываются самой системой
+        if (softKey(name, code)) return
+        // остальное через службу специальных возможностей
         val acc = RemoteAccessibilityService.instance ?: return
         when (name) {
+            "POWER" -> acc.powerDialog()
+            "SETTINGS" -> acc.openSettings()
             "BACK" -> acc.back()
             "HOME" -> acc.home()
             "UP" -> acc.move(View.FOCUS_UP)
@@ -260,6 +285,36 @@ class ControlService : Service() {
             "OK", "ENTER" -> acc.click()
             "DEL" -> acc.deleteLast()
         }
+    }
+
+    /** Кнопки, которые работают без ADB и без спец. возможностей. true — кнопка обработана. */
+    private fun softKey(name: String, code: Int): Boolean {
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        try {
+            when (name) {
+                "VOL_UP" -> audio.adjustStreamVolume(
+                    AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI
+                )
+                "VOL_DOWN" -> audio.adjustStreamVolume(
+                    AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI
+                )
+                "MUTE" -> if (Build.VERSION.SDK_INT >= 23) {
+                    audio.adjustStreamVolume(
+                        AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI
+                    )
+                } else {
+                    return false
+                }
+                "PLAY_PAUSE", "NEXT", "PREV", "REWIND", "FF" -> {
+                    audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, code))
+                    audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, code))
+                }
+                else -> return false
+            }
+        } catch (_: Throwable) {
+            return false
+        }
+        return true
     }
 
     private fun text(v: String, append: Boolean) {

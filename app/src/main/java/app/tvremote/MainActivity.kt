@@ -89,7 +89,7 @@ class MainActivity : Activity() {
         codeView.text = Config.pretty(Config.code(this))
         val acc = if (RemoteAccessibilityService.instance != null) "включены" else "выключены"
         val adb = if (Status.adbOk) "подключено"
-        else "нет. Включите отладку по ADB и нажмите «Всегда разрешать» в запросе на экране"
+        else "нет (не обязательно: громкость и медиа работают без него)"
         infoView.text = "Брокер: " + Config.broker(this) + "\n" +
             "Связь: " + Status.mqtt + "\n" +
             "ADB: " + adb + "\n" +
